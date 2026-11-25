@@ -1,0 +1,29 @@
+{
+  "task": "grasp the bottle with the left arm. lift it clear of the table. the bottle is raised clear of the table.",
+  "times_seconds": [
+    0.0,
+    0.5078125,
+    1.015625,
+    1.5234375,
+    2.03125,
+    2.5390625,
+    3.046875,
+    3.5546875,
+    4.0625,
+    4.5703125,
+    5.078125,
+    5.5859375,
+    6.09375,
+    6.6015625,
+    7.109375,
+    7.6171875,
+    8.125
+  ],
+  "duration_seconds": 8.125,
+  "depth_quantum": 0.005,
+  "point_count": 512,
+  "frames": 17,
+  "coordinate_system": "OpenCV camera0, metres",
+  "source_clip": "robotwin__shard-000157__adjust_bottle_000341",
+  "rough_flow": "r6 step119062 seed 11 original-prompt prediction"
+}

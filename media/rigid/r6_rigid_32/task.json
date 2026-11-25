@@ -1,0 +1,29 @@
+{
+  "task": "grasp the smooth plastic tabletrashbin. tip it and empty it out. the smooth plastic tabletrashbin has been tipped and emptied out.",
+  "times_seconds": [
+    0.0,
+    0.6015625,
+    1.203125,
+    1.8046875,
+    2.40625,
+    3.0078125,
+    3.609375,
+    4.2109375,
+    4.8125,
+    5.4140625,
+    6.015625,
+    6.6171875,
+    7.21875,
+    7.8203125,
+    8.421875,
+    9.0234375,
+    9.625
+  ],
+  "duration_seconds": 9.625,
+  "depth_quantum": 0.005,
+  "point_count": 512,
+  "frames": 17,
+  "coordinate_system": "OpenCV camera0, metres",
+  "source_clip": "robotwin__shard-000494__dump_bin_bigbin_000189",
+  "rough_flow": "r6 step119062 seed 11 original-prompt prediction"
+}

@@ -1,0 +1,29 @@
+{
+  "task": "grasp the orange hydrating oil bottle with the bright red pump with the left arm. place it onto the displaystand with the smooth finish. the orange hydrating oil bottle with the bright red pump rests on the displaystand with the smooth finish.",
+  "times_seconds": [
+    0.0,
+    0.5546875,
+    1.109375,
+    1.6640625,
+    2.21875,
+    2.7734375,
+    3.328125,
+    3.8828125,
+    4.4375,
+    4.9921875,
+    5.546875,
+    6.1015625,
+    6.65625,
+    7.2109375,
+    7.765625,
+    8.3203125,
+    8.875
+  ],
+  "duration_seconds": 8.875,
+  "depth_quantum": 0.005,
+  "point_count": 512,
+  "frames": 17,
+  "coordinate_system": "OpenCV camera0, metres",
+  "source_clip": "robotwin__shard-000336__place_object_stand_109_hydratingoil_000093",
+  "rough_flow": "r6 step119062 seed 11 original-prompt prediction"
+}

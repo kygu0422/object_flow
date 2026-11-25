@@ -1,0 +1,29 @@
+{
+  "task": "grasp the round nut ring. pull it off the peg. the round nut ring has been pulled off the peg.",
+  "times_seconds": [
+    0.0,
+    0.6055,
+    1.211,
+    1.8165,
+    2.422,
+    3.0275000000000003,
+    3.633,
+    4.2385,
+    4.844,
+    5.4495000000000005,
+    6.055000000000001,
+    6.660500000000001,
+    7.266,
+    7.8715,
+    8.477,
+    9.082500000000001,
+    9.688
+  ],
+  "duration_seconds": 9.688,
+  "depth_quantum": 0.005,
+  "point_count": 512,
+  "frames": 17,
+  "coordinate_system": "OpenCV camera0, metres",
+  "source_clip": "metaworld__shard-000028__disassemble-v3_000095",
+  "rough_flow": "r6 step119062 seed 11 original-prompt prediction"
+}

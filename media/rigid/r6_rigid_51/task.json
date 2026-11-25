@@ -1,0 +1,29 @@
+{
+  "task": "grasp the white pillbottle with the textured cap with the right arm. place it onto the pad. the white pillbottle with the textured cap rests on the pad.",
+  "times_seconds": [
+    0.0,
+    0.5859375,
+    1.171875,
+    1.7578125,
+    2.34375,
+    2.9296875,
+    3.515625,
+    4.1015625,
+    4.6875,
+    5.2734375,
+    5.859375,
+    6.4453125,
+    7.03125,
+    7.6171875,
+    8.203125,
+    8.7890625,
+    9.375
+  ],
+  "duration_seconds": 9.375,
+  "depth_quantum": 0.005,
+  "point_count": 512,
+  "frames": 17,
+  "coordinate_system": "OpenCV camera0, metres",
+  "source_clip": "robotwin__shard-000457__move_pillbottle_pad_000200",
+  "rough_flow": "r6 step119062 seed 11 original-prompt prediction"
+}

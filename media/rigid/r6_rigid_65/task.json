@@ -1,0 +1,29 @@
+{
+  "task": "grasp the basketball. dunk it into the basket. the basketball has been dunked into the basket.",
+  "times_seconds": [
+    0.0,
+    0.3555,
+    0.711,
+    1.0665,
+    1.422,
+    1.7774999999999999,
+    2.133,
+    2.4884999999999997,
+    2.844,
+    3.1995,
+    3.5549999999999997,
+    3.9105,
+    4.266,
+    4.6215,
+    4.976999999999999,
+    5.3325,
+    5.688
+  ],
+  "duration_seconds": 5.688,
+  "depth_quantum": 0.005,
+  "point_count": 512,
+  "frames": 17,
+  "coordinate_system": "OpenCV camera0, metres",
+  "source_clip": "metaworld__shard-000011__basketball-v3_000144",
+  "rough_flow": "r6 step119062 seed 11 original-prompt prediction"
+}

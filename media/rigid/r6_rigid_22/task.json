@@ -1,0 +1,29 @@
+{
+  "task": "grasp the pillbottle with the smooth body and ridged cap with the right arm. place it onto the smooth black rectangular displaystand. the pillbottle with the smooth body and ridged cap rests on the smooth black rectangular displaystand.",
+  "times_seconds": [
+    0.0,
+    0.5195,
+    1.039,
+    1.5585,
+    2.078,
+    2.5974999999999997,
+    3.117,
+    3.6365,
+    4.156,
+    4.6754999999999995,
+    5.194999999999999,
+    5.714499999999999,
+    6.234,
+    6.7535,
+    7.273,
+    7.7924999999999995,
+    8.312
+  ],
+  "duration_seconds": 8.312,
+  "depth_quantum": 0.005,
+  "point_count": 512,
+  "frames": 17,
+  "coordinate_system": "OpenCV camera0, metres",
+  "source_clip": "robotwin__shard-000330__place_object_stand_080_pillbottle_000042",
+  "rough_flow": "r6 step119062 seed 11 original-prompt prediction"
+}

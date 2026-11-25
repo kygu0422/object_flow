@@ -1,0 +1,29 @@
+{
+  "task": "grasp the rectangular phone with rounded corners with the right arm. place it onto the smooth brown phone holder. the rectangular phone with rounded corners rests on the smooth brown phone holder.",
+  "times_seconds": [
+    0.0,
+    0.472625,
+    0.94525,
+    1.417875,
+    1.8905,
+    2.363125,
+    2.83575,
+    3.3083750000000003,
+    3.781,
+    4.253625,
+    4.72625,
+    5.198875,
+    5.6715,
+    6.144125,
+    6.616750000000001,
+    7.089375,
+    7.562
+  ],
+  "duration_seconds": 7.562,
+  "depth_quantum": 0.005,
+  "point_count": 512,
+  "frames": 17,
+  "coordinate_system": "OpenCV camera0, metres",
+  "source_clip": "robotwin__shard-000224__place_phone_stand_000468",
+  "rough_flow": "r6 step119062 seed 11 original-prompt prediction"
+}

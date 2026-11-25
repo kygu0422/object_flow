@@ -1,0 +1,29 @@
+{
+  "task": "grasp the ribbed brown cylinder cup with the right arm. place it into the flat round greenish plate. the ribbed brown cylinder cup rests in the flat round greenish plate.",
+  "times_seconds": [
+    0.0,
+    0.582,
+    1.164,
+    1.746,
+    2.328,
+    2.9099999999999997,
+    3.492,
+    4.074,
+    4.656,
+    5.2379999999999995,
+    5.819999999999999,
+    6.401999999999999,
+    6.984,
+    7.566,
+    8.148,
+    8.729999999999999,
+    9.312
+  ],
+  "duration_seconds": 9.312,
+  "depth_quantum": 0.005,
+  "point_count": 512,
+  "frames": 17,
+  "coordinate_system": "OpenCV camera0, metres",
+  "source_clip": "robotwin__shard-000467__place_container_plate_000407",
+  "rough_flow": "r6 step119062 seed 11 original-prompt prediction"
+}
