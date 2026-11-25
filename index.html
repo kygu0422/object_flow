@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flow 修正复测 136</title>
+<meta name="description" content="正式版 136 条复测：刚体、布料、铰接体的原始 flow 与输出候选对比">
+<style>
+:root{
+  --bg:#f6f5f2; --surface:#ffffff; --surface-2:#efede8; --ink:#1c1c1a; --ink-2:#55534e; --ink-3:#8a877f;
+  --line:#e2dfd8; --accent:#2f5d8a;
+  --orig:#5b6675; --orig-bg:#e8ebef;
+  --refine:#1f7a4d; --refine-bg:#e0f1e7;
+  --redraw:#b4561b; --redraw-bg:#f8e7da;
+  --rough:#f26a1b; --cand:#1f6fe0;
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141413; --surface:#1d1d1b; --surface-2:#262624; --ink:#ecebe7; --ink-2:#b3b0a8; --ink-3:#85827a;
+    --line:#33322f; --accent:#7fb0dd;
+    --orig:#aab4c2; --orig-bg:#2a2f36; --refine:#6fd39d; --refine-bg:#1c3328; --redraw:#f0a06a; --redraw-bg:#3a2619;
+    --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141413; --surface:#1d1d1b; --surface-2:#262624; --ink:#ecebe7; --ink-2:#b3b0a8; --ink-3:#85827a;
+  --line:#33322f; --accent:#7fb0dd;
+  --orig:#aab4c2; --orig-bg:#2a2f36; --refine:#6fd39d; --refine-bg:#1c3328; --redraw:#f0a06a; --redraw-bg:#3a2619;
+  --shadow:none;
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:72px}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Noto Sans CJK SC","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased}
+img,video{display:block;max-width:100%}
+button{font:inherit;color:inherit}
+.num{font-variant-numeric:tabular-nums}
+
+.bar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.bar-in{max-width:1320px;margin:0 auto;padding:12px 24px;display:flex;align-items:center;gap:16px}
+.brand{font-weight:650;letter-spacing:-.01em;white-space:nowrap}
+.theme{margin-left:auto;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);
+  border-radius:999px;padding:5px 12px;font-size:13px;cursor:pointer}
+
+main{max-width:1320px;margin:0 auto;padding:0 24px 96px}
+.hero{padding:48px 0 24px}
+.hero h1{font-size:clamp(26px,4vw,38px);line-height:1.15;letter-spacing:-.02em;margin:0 0 12px;font-weight:700}
+.hero p{margin:0 0 6px;color:var(--ink-2);max-width:820px}
+.legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:14px;font-size:14px;color:var(--ink-2)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
+
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:8px 0 32px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+.stat h3{margin:0 0 2px;font-size:15px}
+.stat .big{font-size:26px;font-weight:700;letter-spacing:-.02em}
+.stat .big small{font-size:13px;font-weight:500;color:var(--ink-3);margin-left:4px}
+.stat .meta{color:var(--ink-2);font-size:13px;margin-top:8px;display:grid;gap:2px}
+.routebar{display:flex;height:8px;border-radius:99px;overflow:hidden;margin-top:10px;background:var(--surface-2)}
+.routebar span{display:block;height:100%}
+.routekey{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--ink-2);margin-top:6px}
+
+.tools{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;padding:14px 0;border-top:1px solid var(--line);
+  border-bottom:1px solid var(--line);margin-bottom:20px;position:sticky;top:53px;z-index:10;background:var(--bg)}
+.seg{display:flex;gap:4px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--surface);color:var(--ink-2);border-radius:999px;padding:5px 12px;
+  font-size:13px;cursor:pointer;white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.tools label{font-size:13px;color:var(--ink-2);display:flex;align-items:center;gap:6px;cursor:pointer}
+.search{flex:1 1 200px;min-width:0;max-width:320px;border:1px solid var(--line);background:var(--surface);color:var(--ink);
+  border-radius:999px;padding:6px 14px;font:inherit;font-size:13px}
+select{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:5px 10px;font:inherit;font-size:13px}
+.count{font-size:13px;color:var(--ink-3);margin-left:auto}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);
+  display:flex;flex-direction:column}
+.media{position:relative;aspect-ratio:960/510;background:#e9e9e9;cursor:pointer}
+.media img,.media video{width:100%;height:100%;object-fit:cover}
+.play{position:absolute;inset:auto auto 10px 10px;background:rgba(0,0,0,.62);color:#fff;border-radius:999px;
+  padding:4px 11px;font-size:12px;pointer-events:none}
+.body{padding:12px 14px 14px;display:grid;gap:8px}
+.row1{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.name{font:600 14px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace}
+.badge{font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px}
+.b-original{color:var(--orig);background:var(--orig-bg)}
+.b-refine{color:var(--refine);background:var(--refine-bg)}
+.b-redraw{color:var(--redraw);background:var(--redraw-bg)}
+.prev{font-size:12px;color:var(--ink-3)}
+.prev.changed{color:var(--accent);font-weight:600}
+.task{margin:0;color:var(--ink-2);font-size:13px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.kv{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--ink-3)}
+.kv b{color:var(--ink-2);font-weight:600}
+.empty{padding:48px 0;text-align:center;color:var(--ink-3)}
+footer{max-width:1320px;margin:0 auto;padding:0 24px 48px;color:var(--ink-3);font-size:13px}
+
+@media (max-width:820px){
+  .stats{grid-template-columns:1fr}
+  .tools{position:static}
+}
+@media (max-width:520px){
+  .bar-in,main,footer{padding-left:16px;padding-right:16px}
+  .grid{grid-template-columns:1fr}
+  .count{margin-left:0;width:100%}
+}
+</style>
+</head>
+<body>
+<div class="bar"><div class="bar-in">
+  <div class="brand">Flow 修正 · 136 条复测</div>
+  <button class="theme" id="theme" type="button">切换深浅色</button>
+</div></div>
+
+<main>
+  <div class="hero">
+    <h1>正式版 136 条复测</h1>
+    <p>2026-11-23，A800。刚体 76 条、布料 50 条、铰接体 10 条，显式指定类型，使用真实 API。每条只取首次运行，没有补跑；8 路并发，整批墙钟 190 s。</p>
+    <p>单条用时从会话进程启动算到退出。同一条 clip 两次运行的路线会变（"上次"是前一轮的路线），路线比例只能按单批来读。</p>
+    <div class="legend">
+      <span><i style="background:var(--rough)"></i>左：原始 rough flow</span>
+      <span><i style="background:var(--cand)"></i>右：本次输出（original 时与左侧相同）</span>
+      <span>点图片播放 17 帧视频</span>
+    </div>
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="tools">
+    <div class="seg" id="fam" role="group" aria-label="类别"></div>
+    <div class="seg" id="route" role="group" aria-label="路线"></div>
+    <label><input type="checkbox" id="changed"> 只看路线变了的</label>
+    <input class="search" id="q" type="search" placeholder="搜索 clip 名或任务文本">
+    <select id="sort" aria-label="排序">
+      <option value="name">按名称</option>
+      <option value="slow">用时从长到短</option>
+      <option value="fast">用时从短到长</option>
+    </select>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div class="grid" id="grid"></div>
+</main>
+<footer>数据来自正式复测目录的 per_clip.json 与结果索引。quality 为后端 quality_pass 字段；铰接体验收不含碰撞。诊断列是后端原始标记。</footer>
+
+<script>
+const ROWS = [{"f": "rigid", "n": "r6_rigid_00", "r": "original", "p": "redraw", "s": 3.4128, "a": 1, "q": false, "st": "submitted", "note": "初审通过", "t": "grasp the bottle with the left arm. lift it clear of the table. the bottle is raised clear of the table.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_01", "r": "original", "p": "original", "s": 4.3872, "a": 2, "q": false, "st": "submitted", "note": "初审通过", "t": "grasp the handheld medium claw hammer with the left arm. smash the block with it. the block has been smashed with the handheld medium claw hammer.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_02", "r": "redraw", "p": "redraw", "s": 12.1269, "a": 3, "q": true, "st": "submitted", "note": "direct", "t": "grasp the roller for smoothing materials. lift it clear of the table. the roller for smoothing materials is lifted clear of the table.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_03", "r": "original", "p": "original", "s": 3.0644, "a": 1, "q": false, "st": "submitted", "note": "初审通过", "t": "grasp the gray kitchenpot firmly. lift it clear of the table. the gray kitchenpot is held firmly and lifted clear of the table.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_04", "r": "original", "p": "refine", "s": 3.5307, "a": 1, "q": false, "st": "submitted", "note": "初审通过", "t": "grasp the metal sauce can with the plastic lid with the right arm. place it near the medium metal kitchenpot. the metal sauce can with the plastic lid stands near the medium metal kitchenpot.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_05", "r": "redraw", "p": "redraw", "s": 11.5307, "a": 3, "q": true, "st": "submitted", "note": "direct", "t": "grasp the white pillbottle with the textured cap with the right arm. place it onto the blue pad. the white pillbottle with the textured cap rests on the blue pad.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_06", "r": "redraw", "p": "original", "s": 6.9972, "a": 2, "q": true, "st": "submitted", "note": "direct", "t": "grasp the playingcards box with white symbols with the right arm. shift it farther away. the playingcards box with white symbols has been shifted farther away across the table.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_07", "r": "original", "p": "original", "s": 3.0853, "a": 1, "q": false, "st": "submitted", "note": "初审通过", "t": "grasp the compact red stapler with silver accents with the right arm. place it onto the Cyan mat. the compact red stapler with silver accents rests on the Cyan mat.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_09", "r": "refine", "p": "original", "s": 8.4265, "a": 2, "q": true, "st": "submitted", "note": "local_refine", "t": "grasp the toycar with the right arm. place it right of the smooth woodenblock. the toycar sits to the right of the smooth woodenblock.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_10", "r": "original", "p": "original", "s": 2.8472, "a": 1, "q": false, "st": "submitted", "note": "初审通过", "t": "grasp the ribbed brown cylinder cup with the right arm. place it into the flat round greenish plate. the ribbed brown cylinder cup rests in the flat round greenish plate.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_11", "r": "redraw", "p": "original", "s": 11.3783, "a": 3, "q": true, "st": "submitted", "note": "direct", "t": "grasp the blue rounded-bottom cup. place it onto the round coaster with light streaks. the blue rounded-bottom cup rests on the round coaster with light streaks.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_12", "r": "refine", "p": "original", "s": 12.3329, "a": 3, "q": true, "st": "submitted", "note": "local_refine", "t": "grasp the smooth off-white plastic fan with the right arm. place it onto the Purple mat facing the robot. the smooth off-white plastic fan stands on the Purple mat facing the robot.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_13", "r": "original", "p": "original", "s": 4.0088, "a": 1, "q": false, "st": "submitted", "note": "rough_proxy_rejected", "t": "grasp the bell with the circular body with the right arm. place it onto the handheld electronicscale. the bell with the circular body rests on the handheld electronicscale.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_14", "r": "original", "p": "original", "s": 3.6988, "a": 1, "q": false, "st": "submitted", "note": "rough_proxy_rejected", "t": "grasp the simple dark gray drinking cup with the right arm. place it onto the black and white electronicscale. the simple dark gray drinking cup rests on the black and white electronicscale.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_15", "r": "original", "p": "original", "s": 2.7088, "a": 1, "q": false, "st": "submitted", "note": "初审通过", "t": "grasp the tiny speaker box with the right arm. place it onto the small weighing electronicscale. the tiny speaker box rests on the small weighing electronicscale.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_16", "r": "original", "p": "refine", "s": 4.3147, "a": 1, "q": false, "st": "submitted", "note": "rough_proxy_rejected", "t": "grasp the yellow boxdrink with the left arm. place it onto the black and white electronicscale. the yellow boxdrink rests on the black and white electronicscale.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_17", "r": "original", "p": "redraw", "s": 3.6597, "a": 1, "q": false, "st": "submitted", "note": "rough_proxy_rejected", "t": "grasp the small plastic pillbottle with the right arm. place it onto the electronicscale with red accents. the small plastic pillbottle rests on the electronicscale with red accents.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_18", "r": "redraw", "p": "refine", "s": 12.3895, "a": 3, "q": true, "st": "submitted", "note": "lift_translate_place", "t": "grasp the plastic glue bottle with the orange band with the left arm. place it onto the handheld electronicscale. the plastic glue bottle with the orange band rests on the handheld electronicscale.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_19", "r": "original", "p": "original", "s": 3.1707, "a": 1, "q": false, "st": "submitted", "note": "初审通过", "t": "grasp the seal for imprinting with the right arm. place it onto the electronicscale with red accents. the seal for imprinting rests on the electronicscale with red accents.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_20", "r": "original", "p": "redraw", "s": 3.2127, "a": 1, "q": false, "st": "submitted", "note": "初审通过", "t": "grasp the milk-tea cup with the glossy finish with the right arm. place it onto the electronicscale with the smooth finish. the milk-tea cup with the glossy finish rests on the electronicscale with the smooth finish.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_21", "r": "original", "p": "redraw", "s": 30.1213, "a": 8, "q": false, "st": "submitted", "note": "保留原轨迹", "t": "grasp the playingcards with the right arm. place it onto the metallic brown displaystand with the cutout. the playingcards rests on the metallic brown displaystand with the cutout.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_22", "r": "redraw", "p": "refine", "s": 12.2595, "a": 3, "q": true, "st": "submitted", "note": "lift_translate_place", "t": "grasp the pillbottle with the smooth body and ridged cap with the right arm. place it onto the smooth black rectangular displaystand. the pillbottle with the smooth body and ridged cap rests on the smooth black rectangular displaystand.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_23", "r": "original", "p": "redraw", "s": 2.8087, "a": 1, "q": false, "st": "submitted", "note": "初审通过", "t": "grasp the yellow bottle holding glue with the left arm. place it onto the displaystand with the rectangular hollow space. the yellow bottle holding glue rests on the displaystand with the rectangular hollow space.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_24", "r": "original", "p": "original", "s": 3.029, "a": 1, "q": false, "st": "submitted", "note": "初审通过", "t": "grasp the cone-shaped golden callbell with the left arm. place it onto the rectangular displaystand. the cone-shaped golden callbell rests on the rectangular displaystand.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_25", "r": "original", "p": "original", "s": 2.6233, "a": 1, "q": false, "st": "submitted", "note": "初审通过", "t": "grasp the rectangular phone with rounded corners with the left arm. place it onto the smooth brown phone holder. the rectangular phone with rounded corners rests on the smooth brown phone holder.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_26", "r": "original", "p": "original", "s": 3.1929, "a": 1, "q": false, "st": "submitted", "note": "初审通过", "t": "grasp the dual-tone shoe with the sleek design with the right arm. place it onto the mat. the dual-tone shoe with the sleek design rests on the mat.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_27", "r": "original", "p": "original", "s": 3.04, "a": 1, "q": false, "st": "submitted", "note": "初审通过", "t": "grasp the paymentsign with the tilted rectangular panel with the right arm. lift it and turn its QR code to face the viewer. the paymentsign with the tilted rectangular panel has been lifted and turned so its QR code faces the viewer.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_28", "r": "original", "p": "original", "s": 3.2907, "a": 1, "q": false, "st": "submitted", "note": "初审通过", "t": "grasp the curved orange soda bottle with the right arm. shake it. the curved orange soda bottle has been grasped and shaken.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_29", "r": "original", "p": "original", "s": 2.8176, "a": 1, "q": false, "st": "submitted", "note": "初审通过", "t": "grasp the milk-bottle shaped bottle with the left arm. shake it from side to side. the milk-bottle shaped bottle has been lifted and shaken from side to side.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_30", "r": "redraw", "p": "original", "s": 11.1212, "a": 2, "q": true, "st": "submitted", "note": "direct", "t": "grasp the brown seal with the left arm. press it down onto the Tan mat. the brown seal has been pressed down onto the Tan mat.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_31", "r": "original", "p": "original", "s": 2.6628, "a": 1, "q": false, "st": "submitted", "note": "初审通过", "t": "grasp the compact matte gray computer mouse with the left arm. place it onto the Blue mat. the compact matte gray computer mouse rests on the Blue mat.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_32", "r": "redraw", "p": "original", "s": 8.1889, "a": 2, "q": true, "st": "submitted", "note": "direct", "t": "grasp the smooth plastic tabletrashbin. tip it and empty it out. the smooth plastic tabletrashbin has been tipped and emptied out.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_33", "r": "original", "p": "refine", "s": 3.1772, "a": 1, "q": false, "st": "submitted", "note": "初审通过", "t": "grasp the cuboid tea box with the right arm. place it onto the lightweight black rectangular displaystand. the cuboid tea box rests on the lightweight black rectangular displaystand.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_34", "r": "original", "p": "original", "s": 2.7747, "a": 1, "q": false, "st": "submitted", "note": "初审通过", "t": "grasp the orange hydrating oil bottle with the bright red pump with the left arm. place it onto the displaystand with the smooth finish. the orange hydrating oil bottle with the bright red pump rests on the displaystand with the smooth finish.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_35", "r": "original", "p": "original", "s": 2.97, "a": 1, "q": false, "st": "submitted", "note": "初审通过", "t": "grasp the hand-sized shampoo bottle with the left arm. place it onto the sturdy black rectangular displaystand. the hand-sized shampoo bottle rests on the sturdy black rectangular displaystand.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_36", "r": "original", "p": "original", "s": 3.5683, "a": 1, "q": false, "st": "submitted", "note": "rough_proxy_rejected", "t": "grasp the square-shaped tea box with the right arm. place it onto the compact white electronicscale. the square-shaped tea box rests on the compact white electronicscale.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_37", "r": "redraw", "p": "redraw", "s": 14.1492, "a": 4, "q": true, "st": "submitted", "note": "lift_translate_place", "t": "grasp the red and yellow playingcards case with the left arm. place it onto the electronicscale with the visible display. the red and yellow playingcards case rests on the electronicscale with the visible display.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_38", "r": "original", "p": "original", "s": 3.8726, "a": 1, "q": false, "st": "submitted", "note": "rough_proxy_rejected", "t": "grasp the blue rounded-bottom cup. place it onto the round coaster with light streaks. the blue rounded-bottom cup rests on the round coaster with light streaks.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_39", "r": "original", "p": "original", "s": 3.8135, "a": 1, "q": false, "st": "submitted", "note": "rough_proxy_rejected", "t": "grasp the black and red Cola bottle with the right arm. hold it upright. the black and red Cola bottle is held upright in the grip.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_40", "r": "redraw", "p": "redraw", "s": 6.512, "a": 2, "q": true, "st": "submitted", "note": "direct", "t": "grasp the curved orange soda bottle with the left arm. shake it. the curved orange soda bottle has been grasped and shaken.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_41", "r": "original", "p": "original", "s": 3.0483, "a": 1, "q": false, "st": "submitted", "note": "初审通过", "t": "grasp the dual-tone shoe with the sleek design with the right arm. place it onto the mat. the dual-tone shoe with the sleek design rests on the mat.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_42", "r": "original", "p": "original", "s": 2.8872, "a": 1, "q": false, "st": "submitted", "note": "初审通过", "t": "grasp the roller for smoothing materials. lift it clear of the table. the roller for smoothing materials is lifted clear of the table.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_43", "r": "redraw", "p": "original", "s": 12.376, "a": 3, "q": true, "st": "submitted", "note": "direct", "t": "grasp the rectangular phone with rounded corners with the right arm. place it onto the smooth brown phone holder. the rectangular phone with rounded corners rests on the smooth brown phone holder.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_44", "r": "original", "p": "original", "s": 3.5711, "a": 1, "q": false, "st": "submitted", "note": "rough_proxy_rejected", "t": "grasp the gray kitchenpot firmly. lift it clear of the table. the gray kitchenpot is held firmly and lifted clear of the table.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_45", "r": "original", "p": "original", "s": 3.219, "a": 1, "q": false, "st": "submitted", "note": "初审通过", "t": "grasp the ribbed brown cylinder cup with the left arm. place it into the flat round greenish plate. the ribbed brown cylinder cup rests in the flat round greenish plate.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_47", "r": "redraw", "p": "original", "s": 11.3588, "a": 2, "q": true, "st": "submitted", "note": "direct", "t": "grasp the paymentsign with the tilted rectangular panel with the left arm. lift it and turn its QR code to face the viewer. the paymentsign with the tilted rectangular panel has been lifted and turned so its QR code faces the viewer.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_48", "r": "refine", "p": "redraw", "s": 11.4131, "a": 2, "q": true, "st": "submitted", "note": "rough_rigid_projection", "t": "grasp the milk-bottle shaped bottle with the right arm. shake it from side to side. the milk-bottle shaped bottle has been lifted and shaken from side to side.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_49", "r": "original", "p": "original", "s": 3.6351, "a": 1, "q": false, "st": "submitted", "note": "初审通过", "t": "grasp the playingcards box with white symbols with the right arm. shift it farther away. the playingcards box with white symbols has been shifted farther away across the table.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_51", "r": "redraw", "p": "redraw", "s": 16.4466, "a": 3, "q": true, "st": "submitted", "note": "direct", "t": "grasp the white pillbottle with the textured cap with the right arm. place it onto the pad. the white pillbottle with the textured cap rests on the pad.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_52", "r": "original", "p": "original", "s": 3.3689, "a": 1, "q": false, "st": "submitted", "note": "初审通过", "t": "grasp the metal sauce can with the plastic lid with the right arm. place it near the medium metal kitchenpot. the metal sauce can with the plastic lid stands near the medium metal kitchenpot.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_53", "r": "redraw", "p": "redraw", "s": 17.4603, "a": 6, "q": true, "st": "submitted", "note": "lift_translate_place", "t": "grasp the compact matte gray computer mouse with the right arm. place it onto the Blue mat. the compact matte gray computer mouse rests on the Blue mat.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_55", "r": "original", "p": "original", "s": 3.3447, "a": 1, "q": false, "st": "submitted", "note": "初审通过", "t": "grasp the round nut ring. place it onto the peg. the round nut ring sits on the peg.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_56", "r": "original", "p": "original", "s": 2.8848, "a": 1, "q": false, "st": "submitted", "note": "初审通过", "t": "reach behind the coffee mug. push it to the target location. the coffee mug has been pushed to the target location.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_57", "r": "original", "p": "original", "s": 2.5201, "a": 1, "q": false, "st": "submitted", "note": "初审通过", "t": "grasp the round nut ring. pull it off the peg. the round nut ring has been pulled off the peg.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_58", "r": "original", "p": "original", "s": 2.9176, "a": 1, "q": false, "st": "submitted", "note": "初审通过", "t": "grasp the peg. insert it into the hole from the side. the peg is inserted into the hole from the side.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_59", "r": "original", "p": "original", "s": 3.4138, "a": 1, "q": false, "st": "submitted", "note": "初审通过", "t": "grasp the plug. pull it out of the hole from the side. the plug has been pulled out of the hole from the side.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_60", "r": "redraw", "p": "original", "s": 8.4892, "a": 3, "q": true, "st": "submitted", "note": "direct", "t": "reach behind the puck. push it back to the starting position. the puck has been pushed back to the starting position.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_61", "r": "refine", "p": "original", "s": 11.8689, "a": 3, "q": true, "st": "submitted", "note": "lift_translate_place", "t": "grasp the stick. pull it back. the stick has been pulled back.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_62", "r": "original", "p": "original", "s": 2.6881, "a": 1, "q": false, "st": "submitted", "note": "初审通过", "t": "reach behind the puck. sweep it into the hole. the puck has been swept into the hole.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_63", "r": "original", "p": "original", "s": 3.9299, "a": 1, "q": false, "st": "submitted", "note": "rough_proxy_rejected", "t": "grasp the box lid. place it onto the box. the box lid rests on the box.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_64", "r": "original", "p": "refine", "s": 3.0522, "a": 1, "q": false, "st": "submitted", "note": "初审通过", "t": "reach behind the puck. sweep it to the target location. the puck has been swept to the target location.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_65", "r": "original", "p": "original", "s": 4.6346, "a": 2, "q": false, "st": "submitted", "note": "初审通过", "t": "grasp the basketball. dunk it into the basket. the basketball has been dunked into the basket.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_66", "r": "original", "p": "original", "s": 3.0614, "a": 1, "q": false, "st": "submitted", "note": "初审通过", "t": "grasp the puck. place it onto the shelf. the puck rests on the shelf.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_67", "r": "original", "p": "original", "s": 3.1607, "a": 1, "q": false, "st": "submitted", "note": "初审通过", "t": "reach past the coffee mug. pull it to the target location. the coffee mug has been pulled to the target location.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_68", "r": "original", "p": "original", "s": 4.098, "a": 1, "q": false, "st": "submitted", "note": "rough_proxy_rejected", "t": "grasp the hammer. drive the nail into the board with it. the nail has been driven into the board with the hammer.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_69", "r": "redraw", "p": "original", "s": 7.2559, "a": 2, "q": true, "st": "submitted", "note": "direct", "t": "grasp the stick. pull it back. the stick has been pulled back.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_70", "r": "original", "p": "original", "s": 2.831, "a": 1, "q": false, "st": "submitted", "note": "初审通过", "t": "grasp the red cube. place it at the target goal position. the red cube rests at the target goal position.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_71", "r": "original", "p": "refine", "s": 15.8408, "a": 4, "q": false, "st": "submitted", "note": "保留原轨迹", "t": "grasp the peg. poke the crimson block with it toward the target position. the crimson block has been poked with the peg and shoved to the target position.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_72", "r": "original", "p": "original", "s": 3.4055, "a": 1, "q": false, "st": "submitted", "note": "初审通过", "t": "grasp the two-toned peg. insert it into the box. the orange tip of the two-toned peg is inserted into the box.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_73", "r": "original", "p": "original", "s": 2.859, "a": 1, "q": false, "st": "submitted", "note": "初审通过", "t": "grasp the L shape tool. drag the unreachable cube to the goal area with it. the unreachable cube has been dragged to the goal area with the L shape tool.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_74", "r": "original", "p": "original", "s": 2.8757, "a": 1, "q": false, "st": "submitted", "note": "初审通过", "t": "grasp the liquor. place it into the cabinet. the liquor has been taken from the counter and rests in the cabinet.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_75", "r": "redraw", "p": "original", "s": 13.3236, "a": 3, "q": true, "st": "submitted", "note": "lift_translate_place", "t": "grasp the cheese. place it into the pan. the cheese has been taken from the plate and rests in the pan.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_76", "r": "original", "p": "original", "s": 3.099, "a": 1, "q": false, "st": "submitted", "note": "初审通过", "t": "grasp the mug. place it under the coffee machine dispenser. the mug has been taken from the counter and sits under the coffee machine dispenser.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_77", "r": "original", "p": "original", "s": 2.7743, "a": 1, "q": false, "st": "submitted", "note": "初审通过", "t": "grasp the blue rectangular block. rotate it to the target angle. the blue rectangular block has been rotated to the target angle.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_78", "r": "original", "p": "original", "s": 3.0356, "a": 1, "q": false, "st": "submitted", "note": "初审通过", "t": "grasp the blue rectangular block. rotate it to the target angle. the blue rectangular block has been rotated to the target angle.", "as_": {}}, {"f": "rigid", "n": "r6_rigid_79", "r": "original", "p": "original", "s": 2.6907, "a": 1, "q": false, "st": "submitted", "note": "初审通过", "t": "grasp the plate. place it into the dish rack. the plate is slotted into the dish rack.", "as_": {}}, {"f": "cloth", "n": "r6_cloth_00", "r": "original", "p": "original", "s": 2.8533, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold a long skirt from bottom to the top with 2 grippers", "as_": {}}, {"f": "cloth", "n": "r6_cloth_01", "r": "original", "p": "original", "s": 2.8377, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold the left sleeve of a collar long-sleeve front-close top with 1 gripper", "as_": {}}, {"f": "cloth", "n": "r6_cloth_02", "r": "original", "p": "redraw", "s": 5.3257, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold a no-collar short-sleeve front-close top from the bottom hem upward with 2 grippers", "as_": {}}, {"f": "cloth", "n": "r6_cloth_03", "r": "original", "p": "original", "s": 2.3777, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold a short no-sleeve dress from bottom to the top with 2 grippers", "as_": {}}, {"f": "cloth", "n": "r6_cloth_04", "r": "original", "p": "original", "s": 2.5871, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold the right sleeve of a collar short-sleeve front-close top with 1 gripper", "as_": {}}, {"f": "cloth", "n": "r6_cloth_05", "r": "original", "p": "original", "s": 2.3952, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold the right sleeve of a hooded long-sleeve front-open top with 1 gripper", "as_": {}}, {"f": "cloth", "n": "r6_cloth_06", "r": "original", "p": "original", "s": 2.4787, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold the left leg of short pants over the right leg with 2 grippers", "as_": {}}, {"f": "cloth", "n": "case_07", "r": "original", "p": "original", "s": 2.4236, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold a collar long-sleeve front-close top from the bottom hem upward with 2 grippers", "as_": {}}, {"f": "cloth", "n": "r6_cloth_07", "r": "original", "p": "original", "s": 2.2622, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold a collar no-sleeve front-close top from bottom to the top with 2 grippers", "as_": {}}, {"f": "cloth", "n": "r6_cloth_08", "r": "original", "p": "original", "s": 2.9387, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold the left leg of long pants over the right leg with 2 grippers", "as_": {}}, {"f": "cloth", "n": "case_10", "r": "original", "p": "original", "s": 2.2153, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold long pants from the waistband down toward the legs with 2 grippers", "as_": {}}, {"f": "cloth", "n": "r6_cloth_09", "r": "original", "p": "redraw", "s": 4.8462, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold the left sleeve of a short short-sleeve dress with 1 gripper", "as_": {}}, {"f": "cloth", "n": "metafold_train_00", "r": "original", "p": "redraw", "s": 4.472, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold a long gallus dress from bottom to the top with 2 grippers", "as_": {}}, {"f": "cloth", "n": "metafold_train_01", "r": "original", "p": "original", "s": 2.464, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold the left sleeve of a short short-sleeve dress with 1 gripper", "as_": {}}, {"f": "cloth", "n": "metafold_train_02", "r": "original", "p": "original", "s": 2.2251, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold long pants from the waistband down toward the legs with 2 grippers", "as_": {}}, {"f": "cloth", "n": "metafold_train_03", "r": "original", "p": "redraw", "s": 4.3089, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold the left leg of long pants over the right leg with 2 grippers", "as_": {}}, {"f": "cloth", "n": "metafold_train_04", "r": "original", "p": "original", "s": 2.5819, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold the left leg of long pants over the right leg with 2 grippers", "as_": {}}, {"f": "cloth", "n": "metafold_train_05", "r": "original", "p": "redraw", "s": 4.438, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold short pants from the waistband down toward the legs with 2 grippers", "as_": {}}, {"f": "cloth", "n": "metafold_train_06", "r": "original", "p": "original", "s": 2.3479, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold a long skirt from bottom to the top with 2 grippers", "as_": {}}, {"f": "cloth", "n": "metafold_train_07", "r": "original", "p": "original", "s": 2.4193, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold a long skirt from bottom to the top with 2 grippers", "as_": {}}, {"f": "cloth", "n": "metafold_train_08", "r": "original", "p": "original", "s": 2.5938, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold a collar long-sleeve front-close top from the bottom hem upward with 2 grippers", "as_": {}}, {"f": "cloth", "n": "metafold_train_09", "r": "original", "p": "original", "s": 2.4547, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold a collar no-sleeve front-close top from bottom to the top with 2 grippers", "as_": {}}, {"f": "cloth", "n": "metafold_train_10", "r": "original", "p": "original", "s": 2.4396, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold a collar short-sleeve front-close top from the bottom hem upward with 2 grippers", "as_": {}}, {"f": "cloth", "n": "metafold_train_11", "r": "original", "p": "original", "s": 2.8493, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold the left sleeve of a no-collar long-sleeve front-close top with 1 gripper", "as_": {}}, {"f": "cloth", "n": "metafold_train_12", "r": "original", "p": "original", "s": 2.1459, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold a no-collar long-sleeve front-close top from the bottom hem upward with 2 grippers", "as_": {}}, {"f": "cloth", "n": "metafold_extra_00", "r": "original", "p": "original", "s": 2.2876, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold a collar long-sleeve front-close top from the bottom hem upward with 2 grippers", "as_": {}}, {"f": "cloth", "n": "metafold_extra_01", "r": "original", "p": "original", "s": 2.9241, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold a collar long-sleeve front-open top from the bottom hem upward with 2 grippers", "as_": {}}, {"f": "cloth", "n": "metafold_extra_02", "r": "original", "p": "original", "s": 2.144, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold a collar no-sleeve front-close top from bottom to the top with 1 gripper", "as_": {}}, {"f": "cloth", "n": "metafold_extra_03", "r": "original", "p": "original", "s": 2.5778, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold a collar no-sleeve front-close top from bottom to the top with 2 grippers", "as_": {}}, {"f": "cloth", "n": "metafold_extra_04", "r": "original", "p": "original", "s": 2.2872, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold a collar no-sleeve front-open top from bottom to the top with 2 grippers", "as_": {}}, {"f": "cloth", "n": "metafold_extra_05", "r": "redraw", "p": "original", "s": 25.8077, "a": 4, "q": false, "st": "best_effort", "note": "", "t": "Fold a collar short-sleeve front-close top from the bottom hem upward with 2 grippers", "as_": {"task_consistency": "pass", "physical_plausibility": "fail", "initial_completion": "fail"}}, {"f": "cloth", "n": "metafold_extra_06", "r": "original", "p": "original", "s": 2.1386, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold a hooded long-sleeve front-close top from the bottom hem upward with 2 grippers", "as_": {}}, {"f": "cloth", "n": "metafold_extra_07", "r": "original", "p": "redraw", "s": 4.8169, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold a hooded long-sleeve front-open top from the bottom hem upward with 2 grippers", "as_": {}}, {"f": "cloth", "n": "metafold_extra_08", "r": "original", "p": "original", "s": 2.253, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold a hooded no-sleeve front-close top from bottom to the top with 2 grippers", "as_": {}}, {"f": "cloth", "n": "metafold_extra_09", "r": "original", "p": "original", "s": 2.206, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold a long gallus dress from bottom to the top with 2 grippers", "as_": {}}, {"f": "cloth", "n": "metafold_extra_10", "r": "original", "p": "original", "s": 2.3219, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold a long long-sleeve dress from the bottom hem upward with 2 grippers", "as_": {}}, {"f": "cloth", "n": "metafold_extra_11", "r": "original", "p": "original", "s": 2.3385, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold a long no-sleeve dress from bottom to the top with 2 grippers", "as_": {}}, {"f": "cloth", "n": "metafold_extra_12", "r": "redraw", "p": "redraw", "s": 17.901, "a": 4, "q": false, "st": "best_effort", "note": "", "t": "Fold a long short-sleeve dress from the bottom hem upward with 2 grippers", "as_": {"task_consistency": "pass", "physical_plausibility": "fail", "initial_completion": "pass"}}, {"f": "cloth", "n": "metafold_extra_13", "r": "original", "p": "original", "s": 2.1429, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold a long skirt from bottom to the top with 2 grippers", "as_": {}}, {"f": "cloth", "n": "metafold_extra_14", "r": "original", "p": "original", "s": 2.8529, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold a long tube dress from bottom to the top with 2 grippers", "as_": {}}, {"f": "cloth", "n": "metafold_extra_15", "r": "original", "p": "original", "s": 2.0869, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold a no-collar long-sleeve front-close top from the bottom hem upward with 2 grippers", "as_": {}}, {"f": "cloth", "n": "metafold_extra_16", "r": "original", "p": "original", "s": 2.3705, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold a no-collar no-sleeve front-close top from bottom to the top with 2 grippers", "as_": {}}, {"f": "cloth", "n": "metafold_extra_17", "r": "original", "p": "original", "s": 2.0282, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold a no-collar short-sleeve front-close top from the bottom hem upward with 2 grippers", "as_": {}}, {"f": "cloth", "n": "metafold_extra_18", "r": "original", "p": "original", "s": 2.808, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold a short long-sleeve dress from the bottom hem upward with 2 grippers", "as_": {}}, {"f": "cloth", "n": "metafold_extra_19", "r": "original", "p": "original", "s": 2.6067, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold a short no-sleeve dress from bottom to the top with 2 grippers", "as_": {}}, {"f": "cloth", "n": "metafold_extra_20", "r": "original", "p": "redraw", "s": 4.2543, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold a short short-sleeve dress from the bottom hem upward with 2 grippers", "as_": {}}, {"f": "cloth", "n": "metafold_extra_21", "r": "original", "p": "original", "s": 2.148, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold a short skirt from bottom to the top with 2 grippers", "as_": {}}, {"f": "cloth", "n": "metafold_extra_22", "r": "original", "p": "original", "s": 2.4307, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold long pants from the waistband down toward the legs with 2 grippers", "as_": {}}, {"f": "cloth", "n": "metafold_extra_23", "r": "original", "p": "redraw", "s": 4.6727, "a": 1, "q": null, "st": "submitted", "note": "初审通过", "t": "Fold short pants from the waistband down toward the legs with 2 grippers", "as_": {}}, {"f": "cloth", "n": "metafold_extra_24", "r": "redraw", "p": "redraw", "s": 18.9645, "a": 4, "q": false, "st": "best_effort", "note": "", "t": "Fold the left leg of long pants over the right leg with 2 grippers", "as_": {"task_consistency": "fail", "physical_plausibility": "fail", "initial_completion": "pass"}}, {"f": "articulated", "n": "r6_art_00", "r": "refine", "p": "refine", "s": 6.9065, "a": 3, "q": true, "st": "submitted", "note": "prismatic", "t": "reach for the button. press it down from the top. the button has been pressed down from the top.", "as_": {"task_consistency": "pass", "physical_plausibility": "pass"}}, {"f": "articulated", "n": "r6_art_01", "r": "refine", "p": "refine", "s": 6.5776, "a": 3, "q": true, "st": "submitted", "note": "prismatic", "t": "reach over the wall toward the button. press it down from the top. the button has been pressed down from the top with a wall in the way.", "as_": {"task_consistency": "pass", "physical_plausibility": "pass"}}, {"f": "articulated", "n": "r6_art_02", "r": "refine", "p": "refine", "s": 6.7547, "a": 3, "q": true, "st": "submitted", "note": "prismatic", "t": "reach for the button. press it in. the button has been pressed in.", "as_": {"task_consistency": "pass", "physical_plausibility": "pass"}}, {"f": "articulated", "n": "r6_art_03", "r": "refine", "p": "redraw", "s": 6.6513, "a": 3, "q": true, "st": "submitted", "note": "prismatic", "t": "reach over the wall toward the button. press it in. the button has been pressed in with a wall in the way.", "as_": {"task_consistency": "pass", "physical_plausibility": "pass"}}, {"f": "articulated", "n": "r6_art_04", "r": "redraw", "p": "redraw", "s": 9.0709, "a": 3, "q": true, "st": "submitted", "note": "revolute", "t": "grasp the door. swing it closed. the door is swung closed.", "as_": {"task_consistency": "pass", "physical_plausibility": "pass"}}, {"f": "articulated", "n": "r6_art_05", "r": "redraw", "p": "redraw", "s": 7.8624, "a": 3, "q": true, "st": "submitted", "note": "revolute", "t": "grasp the lock. turn it to lock the door. the lock on the door has been turned to the locked position.", "as_": {"task_consistency": "pass", "physical_plausibility": "pass"}}, {"f": "articulated", "n": "r6_art_06", "r": "redraw", "p": "redraw", "s": 8.3006, "a": 3, "q": true, "st": "submitted", "note": "revolute", "t": "grasp the door. swing it open. the door is swung open.", "as_": {"task_consistency": "pass", "physical_plausibility": "pass"}}, {"f": "articulated", "n": "r6_art_07", "r": "refine", "p": "refine", "s": 7.8113, "a": 3, "q": true, "st": "submitted", "note": "prismatic", "t": "grasp the drawer. push it shut. the drawer is pushed shut.", "as_": {"task_consistency": "pass", "physical_plausibility": "pass"}}, {"f": "articulated", "n": "r6_art_08", "r": "redraw", "p": "redraw", "s": 8.7966, "a": 3, "q": true, "st": "submitted", "note": "prismatic", "t": "grasp the island dishwasher rack. slide it fully out. the island dishwasher rack is slid fully out.", "as_": {"task_consistency": "pass", "physical_plausibility": "pass"}}, {"f": "articulated", "n": "r6_art_09", "r": "redraw", "p": "redraw", "s": 8.4355, "a": 3, "q": true, "st": "submitted", "note": "prismatic", "t": "grasp the left toaster oven top rack. slide it fully out. the left toaster oven top rack is slid fully out.", "as_": {"task_consistency": "pass", "physical_plausibility": "pass"}}];
+const FAM = {rigid:"刚体", cloth:"布料", articulated:"铰接体"};
+const ROUTES = ["original","refine","redraw"];
+const RCOL = {original:"var(--orig)", refine:"var(--refine)", redraw:"var(--redraw)"};
+const state = {fam:"all", route:"all", changed:false, q:"", sort:"name"};
+
+const store = {
+  get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
+  set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+};
+const root = document.documentElement;
+const saved = store.get("f136-theme");
+if (saved) root.dataset.theme = saved;
+document.getElementById("theme").onclick = () => {
+  const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  root.dataset.theme = dark ? "light" : "dark";
+  store.set("f136-theme", root.dataset.theme);
+};
+
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const med = a => { const b=[...a].sort((x,y)=>x-y), m=b.length>>1; return b.length%2 ? b[m] : (b[m-1]+b[m])/2; };
+
+function renderStats(){
+  document.getElementById("stats").innerHTML = Object.keys(FAM).map(f => {
+    const r = ROWS.filter(x => x.f === f), n = r.length;
+    const s = r.map(x => x.s), mean = s.reduce((a,b)=>a+b,0)/n;
+    const cnt = Object.fromEntries(ROUTES.map(k => [k, r.filter(x => x.r === k).length]));
+    const changed = r.filter(x => x.p !== x.r).length;
+    const q = r.filter(x => x.q === true).length;
+    return `<div class="stat">
+      <h3>${FAM[f]}</h3>
+      <div class="big num">${n}<small>条</small></div>
+      <div class="routebar">${ROUTES.map(k => cnt[k] ? `<span style="width:${cnt[k]/n*100}%;background:${RCOL[k]}" title="${k} ${cnt[k]}"></span>` : "").join("")}</div>
+      <div class="routekey">${ROUTES.map(k => `<span>${k} <b class="num">${cnt[k]}</b></span>`).join("")}</div>
+      <div class="meta num">
+        <span>单条用时 平均 ${mean.toFixed(2)} s · 中位 ${med(s).toFixed(2)} s</span>
+        <span>quality_pass ${q}/${n} · 路线和上次不同 ${changed}/${n}</span>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function chips(id, items, key){
+  const el = document.getElementById(id);
+  el.innerHTML = items.map(([v,label]) => `<button type="button" class="chip" data-v="${v}" aria-pressed="${state[key]===v}">${label}</button>`).join("");
+  el.onclick = e => {
+    const b = e.target.closest("button"); if (!b) return;
+    state[key] = b.dataset.v;
+    el.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b));
+    render();
+  };
+}
+
+let playing = null;
+function stopPlaying(){
+  if (!playing) return;
+  const {box, img} = playing;
+  box.querySelector("video")?.remove();
+  img.style.display = ""; box.querySelector(".play").style.display = "";
+  playing = null;
+}
+function play(box){
+  if (playing && playing.box === box) return;
+  stopPlaying();
+  const img = box.querySelector("img");
+  const v = document.createElement("video");
+  v.src = box.dataset.src; v.autoplay = true; v.loop = true; v.muted = true; v.playsInline = true; v.controls = true;
+  v.poster = img.src;
+  img.style.display = "none"; box.querySelector(".play").style.display = "none";
+  box.appendChild(v);
+  playing = {box, img};
+}
+
+function render(){
+  const q = state.q.trim().toLowerCase();
+  let r = ROWS.filter(x =>
+    (state.fam === "all" || x.f === state.fam) &&
+    (state.route === "all" || x.r === state.route) &&
+    (!state.changed || x.p !== x.r) &&
+    (!q || x.n.toLowerCase().includes(q) || x.t.toLowerCase().includes(q)));
+  if (state.sort === "slow") r.sort((a,b) => b.s - a.s);
+  else if (state.sort === "fast") r.sort((a,b) => a.s - b.s);
+  stopPlaying();
+  document.getElementById("count").textContent = `显示 ${r.length} / ${ROWS.length} 条`;
+  const g = document.getElementById("grid");
+  if (!r.length){ g.innerHTML = `<div class="empty">没有符合条件的 clip</div>`; return; }
+  g.innerHTML = r.map(x => {
+    const ch = x.p !== x.r;
+    const qual = x.q === true ? "通过" : x.q === false ? "未通过" : "—";
+    const as = Object.entries(x.as_ || {}).map(([k,v]) => `${k}=${v}`).join(" · ");
+    return `<article class="card">
+      <div class="media" data-src="media/${x.f}/${x.n}.mp4" role="button" tabindex="0" aria-label="播放 ${esc(x.n)}">
+        <img loading="lazy" src="media/${x.f}/${x.n}.jpg" alt="${esc(x.n)} 第 16 帧，左原始右输出">
+        <span class="play">▶ 播放</span>
+      </div>
+      <div class="body">
+        <div class="row1">
+          <span class="name">${esc(x.n)}</span>
+          <span class="badge b-${x.r}">${x.r}</span>
+          <span class="prev ${ch ? "changed" : ""}">上次 ${esc(x.p)}${ch ? "，变了" : ""}</span>
+        </div>
+        <p class="task" title="${esc(x.t)}">${esc(x.t)}</p>
+        <div class="kv num">
+          <span>用时 <b>${x.s.toFixed(2)} s</b></span>
+          <span>API <b>${x.a}</b> 次</span>
+          <span>quality <b>${qual}</b></span>
+          ${x.note ? `<span>诊断 <b>${esc(x.note)}</b></span>` : ""}
+          ${x.st !== "submitted" ? `<span>状态 <b>${esc(x.st)}</b></span>` : ""}
+          ${as ? `<span>${esc(as)}</span>` : ""}
+        </div>
+      </div>
+    </article>`;
+  }).join("");
+}
+
+document.getElementById("grid").addEventListener("click", e => {
+  const box = e.target.closest(".media"); if (box) play(box);
+});
+document.getElementById("grid").addEventListener("keydown", e => {
+  const box = e.target.closest(".media");
+  if (box && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); play(box); }
+});
+document.getElementById("changed").onchange = e => { state.changed = e.target.checked; render(); };
+document.getElementById("q").oninput = e => { state.q = e.target.value; render(); };
+document.getElementById("sort").onchange = e => { state.sort = e.target.value; render(); };
+
+chips("fam", [["all","全部"], ...Object.entries(FAM)], "fam");
+chips("route", [["all","全部路线"], ...ROUTES.map(k => [k,k])], "route");
+renderStats();
+render();
+</script>
+</body>
+</html>
